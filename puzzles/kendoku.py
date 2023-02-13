@@ -40,13 +40,17 @@ cols_c  = [ Distinct([ X[i][j] for i in range(dim) ])
 from functools import reduce
 def add_one_cage_constr(cage, s):
   '''Given a cage and a solver s, s.add the correct constraint'''
+  # return the total value of the cage
   def val(cage):
     return cage[1]
+  # return the operator of the cage
   def op(cage):
     return cage[0]
+  # return the coordinates of the cage
   def argcoords(cage):
     return cage[2]
 
+  # Get all values of a single cage
   vals = list(map(lambda p: X[p[0]-1] [p[1]-1], argcoords(cage)))
 
   def plus_expr(cage):
@@ -58,14 +62,15 @@ def add_one_cage_constr(cage, s):
   
   arg0 = argcoords(cage)[0] # arg0 and arg1 are coord pairs
   arg1 = argcoords(cage)[1] # applicable for the '-' and '/' cases only
+  # Add constraint based on the operator
   if op(cage)=='+':
-    # print("adding ", val(cage), " equals ", plus_expr(cage))
     s.add(val(cage) == plus_expr(cage))
   elif op(cage)=='*':
     s.add(val(cage) == times_expr(cage))
-  elif (cage[0]=='-'): #-- finish
-    s.add( val(cage) == minus_expr(cage))
-  elif (cage[0]=='/'): #--not quite correct below - fix it !!
+  elif (cage[0]=='-'):
+    s.add(val(cage) == minus_expr(cage))
+  elif (cage[0]=='/'):
+    # Check for both divison ordering (x/y and y/x)
     s.add(Or(val(cage) == reduce(lambda x,y: y / x, vals), val(cage) == reduce(lambda x,y: x / y, vals)))  
   else:
     print("Erroneous cage operator")
@@ -76,9 +81,19 @@ for cage in cages:
   add_one_cage_constr(cage, s)
 
 if s.check() == sat:
+  # get the values
   m = s.model()
+  # get the values of satisfied constraints
   r = [ [ m.evaluate(X[i][j]) for j in range(dim) ]
      for i in range(dim) ]
   print_matrix(r)
 else:
   print("failed to solve")
+
+# The solution of the problem
+# [[5, 6, 3, 4, 1, 2],
+#  [6, 1, 4, 5, 2, 3],
+#  [4, 5, 2, 3, 6, 1],
+#  [3, 4, 1, 2, 5, 6],
+#  [2, 3, 6, 1, 4, 5],
+#  [1, 2, 5, 6, 3, 4]]
