@@ -24,7 +24,7 @@ v_value_constraints = [And(0 <= V[i][j], V[i][j] <= num_threads * steps - 1) for
 concurrency_c = v_ordering_constraints + v_distinct_constraints + v_value_constraints
 
 # Arary the store the value of execution
-Values = Array ('Values', IntSort(), IntSort())
+Values = Array('Values', IntSort(), IntSort())
 
 # constraints on the assignment in the first expression
 initial_value_c = [And(Values[V[1-1][0]] == 2, Values[V[1-1][1]] == 3)]
@@ -37,7 +37,17 @@ all_value_c = initial_value_c + values_c + values_read_c
 s = Solver()
 s.add(concurrency_c)
 s.add(all_value_c)
-print(s.check())
-m = s.model()
-print(m)
-print([m.eval(Values[i]) for i in range(num_threads * steps)])
+
+results = []
+value_results = []
+
+while s.check() == sat:
+  # Get the current result
+  results.append(s.model())
+  value_results.append([s.model().eval(Values[i]) for i in range(num_threads * steps)])
+  # Ignore the current result for the next round
+  s.add(Or([V[i][j] != s.model()[V[i][j]] for j in range(num_threads) for i in range(steps)])) 
+
+print(len(results))
+print(len(value_results))
+print(value_results)
